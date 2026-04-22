@@ -1,0 +1,14 @@
+{
+  "databases": [
+    {
+      "id": "fistingguide.sqlite3",
+      "label": "fistingguide.sqlite3",
+      "isDefault": true
+    },
+    {
+      "id": "followers.sqlite3",
+      "label": "followers.sqlite3",
+      "isDefault": false
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "followers-sqlite-report",
+  "main": "src/index.js",
+  "compatibility_date": "2026-04-23",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/"]
+  }
+}

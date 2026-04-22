@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Twitter Follower Analysis Report</title>
+  <link rel="stylesheet" href="/static/css/followers.sqlite3.report.css">
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="eyebrow">SQLite Audience Report</div>
+      <h1 id="hero-title">Follower Analysis Report</h1>
+      <p class="subtitle" id="hero-subtitle">Switch between databases in the current directory to inspect different follower pools. The page keeps key metrics, structure, map output, and account tables linked together.</p>
+      <div class="hero-controls">
+        <div class="field">
+          <label for="db-select">Database</label>
+          <select id="db-select"></select>
+        </div>
+        <div class="hero-note" id="hero-note">If the current directory contains multiple SQLite report datasets, you can switch between them here.</div>
+      </div>
+      <div class="meta" id="meta"></div>
+    </section>
+
+    <div class="view-shell">
+      <div class="view-nav" id="panel-tabs">
+        <button class="view-btn active" type="button" data-panel="summary"><strong>Overview</strong><span>Core metrics overview</span></button>
+        <button class="view-btn" type="button" data-panel="structure"><strong>Structure</strong><span>Distributions, keywords, locations</span></button>
+        <button class="view-btn" type="button" data-panel="network"><strong>Graph</strong><span>Scatter plot, brush, risk layers</span></button>
+        <button class="view-btn" type="button" data-panel="accounts"><strong>Accounts</strong><span>Search, sort, export</span></button>
+        <button class="view-btn" type="button" data-panel="map"><strong>Map</strong><span>Geographic density and matched locations</span></button>
+        <button class="view-btn" type="button" data-panel="ai"><strong>AI Analysis</strong><span>Generate analysis prompt</span></button>
+      </div>
+      <div class="view-brief">
+        <div>
+          <div class="view-title" id="active-panel-title">Overview</div>
+          <div class="view-desc" id="active-panel-desc">Review the core metrics and basic statistics for the current database.</div>
+        </div>
+        <div class="view-badge" id="active-panel-badge">Summary</div>
+      </div>
+    </div>
+
+    <section class="section panel-section" id="panel-summary">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Summary</div>
+          <h2>Core Metrics</h2>
+        </div>
+        <p class="section-note">This section shows only statistics directly supported by the current database and does not provide preset insights.</p>
+      </div>
+      <div class="panel">
+        <div class="metric-grid" id="metric-grid"></div>
+      </div>
+    </section>
+
+    <section class="section panel-section" id="panel-structure" hidden>
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Structure</div>
+          <h2>Structure Summary</h2>
+        </div>
+        <p class="section-note">These distributions and frequent labels help you review the overall shape before drilling into specific accounts.</p>
+      </div>
+      <div class="grid two">
+        <div class="panel">
+          <h3>Followers / Posts / Signup Era</h3>
+          <div class="donut-grid" id="dist-bars"></div>
+        </div>
+        <div class="panel">
+          <h3>Topics and location samples</h3>
+          <div class="chips" id="keyword-chips" style="margin-bottom:14px;"></div>
+          <div class="bars" id="topic-bars" style="margin-bottom:16px;"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Top locations</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody id="location-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section panel-section" id="panel-network" hidden>
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Network View</div>
+          <h2>Follower Structure Graph</h2>
+        </div>
+        <p class="section-note">The x-axis is a follower account's own follower count, the y-axis is its following count, both on log scales. You can toggle risk layers, hide high-risk points, brush a local region, and inspect the linked results below.</p>
+      </div>
+      <div class="grid two">
+        <div class="panel">
+          <div class="toolbar">
+            <label><input type="checkbox" id="toggle-low" checked> Show low risk</label>
+            <label><input type="checkbox" id="toggle-medium" checked> Show medium risk</label>
+            <label><input type="checkbox" id="toggle-high" checked> Show high risk</label>
+            <label><input type="checkbox" id="toggle-top" checked> Highlight high-value fans</label>
+            <label><input type="checkbox" id="toggle-hide-high"> Hide high-risk points</label>
+          </div>
+          <div class="stats" id="chart-stats"></div>
+          <div class="chart-wrap">
+            <canvas id="scatter" width="900" height="560" aria-label="Follower relationship scatter plot"></canvas>
+            <div class="tooltip" id="tooltip"></div>
+          </div>
+          <div class="selection-summary">Hold the left mouse button and drag on the chart to brush a region. The results will appear in the table below.</div>
+        </div>
+        <div class="panel">
+          <h3>Actions</h3>
+          <div class="btn-row">
+            <button class="btn primary" id="download-top-csv" type="button">Download high-value fans CSV</button>
+            <button class="btn" id="download-bot-csv" type="button">Download high-risk accounts CSV</button>
+            <button class="btn" id="reset-view" type="button">Reset filters</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:18px;">
+        <div class="section-head" style="margin-bottom:14px;">
+          <div>
+            <div class="eyebrow">Brush Selection</div>
+            <h3 style="margin-bottom:0;">Brush Results</h3>
+          </div>
+          <p class="section-note">Drag on the graph to brush a region. Matching accounts appear here immediately, with pagination.</p>
+        </div>
+        <div class="selection-summary" id="selection-summary">Hold the left mouse button and drag on the chart to brush a region. Matching accounts will appear below.</div>
+        <div class="btn-row" style="margin-top:10px; margin-bottom:8px;">
+          <button class="btn" id="selection-prev" type="button">Previous</button>
+          <button class="btn" id="selection-next" type="button">Next</button>
+          <span class="chip" id="selection-page-info">Page 1 / 1</span>
+        </div>
+        <details class="collapse" open>
+          <summary>Selected Accounts</summary>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Account</th>
+                  <th>Account age (days)</th>
+                  <th>Followers</th>
+                  <th>Following</th>
+                  <th>Posts</th>
+                </tr>
+              </thead>
+              <tbody id="selection-body"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="section panel-section" id="panel-accounts" hidden>
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Unified Panel</div>
+          <h2>Unified Account Panel</h2>
+        </div>
+        <p class="section-note">Keep high-value real fans and high-risk accounts inside one shared filter set for fast switching, search, sorting, and export.</p>
+      </div>
+      <div class="panel">
+        <div class="tabs" style="margin-bottom:14px;">
+          <button class="tab active" id="tab-top" type="button">High-value real fans</button>
+          <button class="tab" id="tab-bots" type="button">High-risk accounts</button>
+        </div>
+        <div class="controls">
+          <div class="field">
+            <label for="search">Search</label>
+            <input id="search" type="text" placeholder="Search account, name, location">
+          </div>
+          <div class="field">
+            <label for="country-filter">Country / Region</label>
+            <select id="country-filter">
+              <option value="all">All countries / regions</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="risk-filter">Risk filter</label>
+            <select id="risk-filter">
+              <option value="all">All risk levels</option>
+              <option value="low">Low risk only</option>
+              <option value="medium">Medium risk only</option>
+              <option value="high">High risk only</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sort-key">Sort field</label>
+            <select id="sort-key">
+              <option value="real_score">Real-fan score</option>
+              <option value="bot_score">Bot score</option>
+              <option value="followers">Follower count</option>
+              <option value="following">Following count</option>
+              <option value="statuses">Post count</option>
+              <option value="age_days">Account age</option>
+              <option value="screen_name">Account</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sort-order">Sort order</label>
+            <select id="sort-order">
+              <option value="desc">High to low</option>
+              <option value="asc">Low to high</option>
+            </select>
+          </div>
+        </div>
+        <details class="collapse" open>
+          <summary>Account List</summary>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-sort="screen_name">Account</th>
+                  <th data-sort="age_days">Account age (days)</th>
+                  <th data-sort="followers">Followers</th>
+                  <th data-sort="following">Following</th>
+                  <th data-sort="statuses">Posts</th>
+                  <th data-sort="bot_bucket">Risk</th>
+                  <th data-sort="bot_score">Bot score</th>
+                  <th data-sort="real_score">Real-fan score</th>
+                  <th>Location / Reason</th>
+                  <th>Open</th>
+                </tr>
+              </thead>
+              <tbody id="account-body"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="section panel-section" id="panel-map" hidden>
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Distribution Map</div>
+          <h2>Follower Distribution Map</h2>
+        </div>
+        <p class="section-note">Location text is matched conservatively from publicly filled profile fields. Darker color means more matched followers. Empty or unrecognized locations are not placed on the map.</p>
+      </div>
+      <div class="map-shell">
+        <div class="panel">
+          <div class="map-wrap">
+            <canvas id="map-canvas" class="map-canvas" width="960" height="480" aria-label="Follower geographic distribution map"></canvas>
+            <div class="tooltip" id="map-tooltip"></div>
+          </div>
+          <div class="legend-row">
+            <span>Low density</span>
+            <div class="legend-ramp"></div>
+            <span>High density</span>
+            <span class="chip" id="map-match-summary">0 matched location samples</span>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Top matched locations</h3>
+          <div class="note-box" style="margin-bottom:14px;">
+            This is coarse geographic mapping, not precise geocoding.
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Location</th>
+                  <th>Count</th>
+                  <th>Share of matched</th>
+                </tr>
+              </thead>
+              <tbody id="map-body"></tbody>
+            </table>
+          </div>
+          <h3 style="margin-top:18px;">Top unmatched locations</h3>
+          <div class="note-box" style="margin-bottom:14px;">
+            This list shows frequent location strings that still do not match a country or region rule.
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Raw location</th>
+                  <th>Count</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="map-unmatched-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section panel-section" id="panel-ai" hidden>
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">AI Analysis</div>
+          <h2>AI Analysis Prompt</h2>
+        </div>
+        <p class="section-note">This panel generates a neutral prompt from the current database. You can copy it directly into Grok to generate insights.</p>
+      </div>
+      <div class="panel">
+        <div class="btn-row" style="margin-bottom:14px;">
+          <button class="btn primary" id="copy-ai-prompt" type="button">Copy prompt</button>
+        </div>
+        <textarea id="ai-prompt" style="width:100%;min-height:420px;border:1px solid var(--line);border-radius:16px;padding:16px;background:var(--paper);color:var(--ink);font:14px/1.7 Consolas, 'Segoe UI', sans-serif;resize:vertical;" readonly></textarea>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
+  <script src="/static/js/world.countries.js"></script>
+  <script src="/static/js/followers.sqlite3.report.i18n.js"></script>
+  <script src="/static/js/followers.sqlite3.report.app.js"></script>
+</body>
+</html>
