@@ -6,8 +6,8 @@
       "isDefault": true
     },
     {
-      "id": "followers.sqlite3",
-      "label": "followers.sqlite3",
+      "id": "morboxano.sqlite3",
+      "label": "morboxano.sqlite3",
       "isDefault": false
     }
   ]
